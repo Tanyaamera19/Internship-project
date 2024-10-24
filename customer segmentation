@@ -1,0 +1,73 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+
+# Step 1: Load the dataset (for example, customer data)
+# You can replace this with your dataset
+data = pd.read_csv('customer_data.csv')
+
+# Step 2: Data Preprocessing
+# Check for missing values
+print(data.isnull().sum())
+
+# Drop rows with missing values (if any)
+data = data.dropna()
+
+# Select relevant features (for example, 'Age', 'Annual Income', 'Spending Score')
+features = ['Age', 'Annual Income (k$)', 'Spending Score (1-100)']
+X = data[features]
+
+# Normalize the data using StandardScaler
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Step 3: Applying K-Means Clustering
+# Use the elbow method to find the optimal number of clusters
+inertia = []
+K = range(1, 11)  # Try clustering for K from 1 to 10
+
+for k in K:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(X_scaled)
+    inertia.append(kmeans.inertia_)
+
+# Plot the elbow curve
+plt.figure(figsize=(8, 5))
+plt.plot(K, inertia, 'bo-', color='blue')
+plt.xlabel('Number of clusters (k)')
+plt.ylabel('Inertia')
+plt.title('Elbow Method for Optimal k')
+plt.show()
+
+# Based on the elbow plot, choose the optimal number of clusters
+optimal_clusters = 4  # Assuming 4 clusters from the elbow curve
+
+# Apply K-Means with the optimal number of clusters
+kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
+kmeans.fit(X_scaled)
+
+# Add cluster labels to the original dataset
+data['Cluster'] = kmeans.labels_
+
+# Step 4: Visualizing the Clusters
+# Use PCA to reduce dimensions to 2 for visualization
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+# Plot clusters
+plt.figure(figsize=(10, 6))
+sns.scatterplot(x=X_pca[:, 0], y=X_pca[:, 1], hue=data['Cluster'], palette='Set1', s=100)
+plt.title('Customer Segmentation Clusters')
+plt.xlabel('PCA Component 1')
+plt.ylabel('PCA Component 2')
+plt.show()
+
+# Step 5: Analyze Cluster Characteristics
+# Group by cluster and analyze average feature values
+cluster_analysis = data.groupby('Cluster')[features].mean()
+print(cluster_analysis)
